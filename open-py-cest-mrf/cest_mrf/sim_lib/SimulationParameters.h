@@ -24,6 +24,10 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 #include "Eigen"
 #include <memory>
 
+// JWW add
+#include <map>
+#include <tuple>
+
 #define _USE_MATH_DEFINES
 #include <cmath>
 #ifndef M_PI // should be in cmath
@@ -254,6 +258,11 @@ public: // TODO: write get and set methods for member variables and make them pr
 
 	//! Get number of max pulse samples
 	unsigned int GetMaxNumberOfPulseSamples();
+	
+	// JWW add
+	void SetMTLineOverride(int magShape, int phaseShape, double freqOffsetHz, double g);
+	void ClearMTLineOverrides();
+	double GetMTLineOverride(int magShape, int phaseShape, double freqOffsetHz);
 
 
 protected:
@@ -270,6 +279,9 @@ protected:
 	bool verboseMode;                      /*!< true, if you want to have some output information */
 	bool useInitMagnetization;             /*!< true, if the magnetization vector should be reset to the initial magnetization after each adc */
 	unsigned int maxNumberOfPulseSamples;  /*!< number of pulse samples for shaped pulses */
+	
+	// JWW add: per-pulse MT lineshape overrides, key = (magShape, phaseShape, round(freqOffsetHz))
+	std::map<std::tuple<int, int, long>, double> mtLineOverrides;
 
 };
 

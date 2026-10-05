@@ -8,7 +8,7 @@ setup(
     description='Python code to use C++ pulseq-CEST to simulate MRI signal and MRF dictionary generation.',
     install_requires=[
         'bmctool==0.5.0',
-        'numpy=1.23.5',
+        'numpy==1.23.5',
         'scipy==1.11.1',
         'PyYAML==6.0',
         'sigpy==0.1.22',

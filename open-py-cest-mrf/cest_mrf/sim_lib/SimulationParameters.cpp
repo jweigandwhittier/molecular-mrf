@@ -312,6 +312,42 @@ MTPool* SimulationParameters::GetMTPool()
 	return simulateMTPool ? &mtPool : NULL;
 }
 
+// Key for the MT lineshae override table: (magShape, phaseShape, freqOffset rounded to 1 Hz)
+static std::tuple<int, int, long> MakeMTOverrideKey(int magShape, int phaseShape, double freqOffsetHz)
+{
+    return std::make_tuple(magShape, phaseShape, std::lround(freqOffsetHz));
+}
+
+//! Set an MT lineshape override for one RF pulse shape at one frequency offset
+/*!
+	\param magShape  magnitude shape ID from the .seq file
+	\param phaseShape phase shape ID from the .seq file
+	\param freqOffsetHz RF frequency offset [Hz]
+	\param g  effective lineshape value (pi included, same units as GetMTLineAtCurrentOffset) [s]
+*/
+void SimulationParameters::SetMTLineOverride(int magShape, int phaseShape, double freqOffsetHz, double g)
+{
+    mtLineOverrides[MakeMTOverrideKey(magShape, phaseShape, freqOffsetHz)] = g;
+}
+
+//! Remove all MT lineshape overrides
+void SimulationParameters::ClearMTLineOverrides()
+{
+    mtLineOverrides.clear();
+}
+
+//! Get the MT lineshape override for a pulse, or -1.0 if none is set
+/*!
+    \return effective lineshape value [s] or -1.0 if no override exists for this pulse
+*/
+double SimulationParameters::GetMTLineOverride(int magShape, int phaseShape, double freqOffsetHz)
+{
+    auto it = mtLineOverrides.find(MakeMTOverrideKey(magShape, phaseShape, freqOffsetHz))
+    if (it == mtLineOverrides.end())
+        return -1.0;
+    return it->second;
+}
+
 //! Set Scanner related info
 /*!
 	\param b0 static field [T]
