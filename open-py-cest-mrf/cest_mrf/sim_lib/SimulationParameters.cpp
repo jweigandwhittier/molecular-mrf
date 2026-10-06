@@ -342,7 +342,7 @@ void SimulationParameters::ClearMTLineOverrides()
 */
 double SimulationParameters::GetMTLineOverride(int magShape, int phaseShape, double freqOffsetHz)
 {
-    auto it = mtLineOverrides.find(MakeMTOverrideKey(magShape, phaseShape, freqOffsetHz))
+    auto it = mtLineOverrides.find(MakeMTOverrideKey(magShape, phaseShape, freqOffsetHz));
     if (it == mtLineOverrides.end())
         return -1.0;
     return it->second;

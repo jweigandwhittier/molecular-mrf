@@ -36,7 +36,7 @@ public:
 	virtual void UpdateSimulationParameters(SimulationParameters &sp) {};
 
 	//! Update Matrix with pulse info 
-	virtual void UpdateBlochMatrix(SimulationParameters &sp, double rfAmplitude, double rfFrequency, double rfPhase) {};
+	virtual void UpdateBlochMatrix(SimulationParameters &sp, double rfAmplitude, double rfFrequency, double rfPhase, double mtLineOverride = -1.0) {};
 
 	//! Solve Bloch McConnell equation 
 	virtual void SolveBlochEquation(Eigen::VectorXd &M, double t) {};
@@ -69,7 +69,7 @@ public:
 	void UpdateSimulationParameters(SimulationParameters &sp);
 
 	//! Update Matrix with pulse info 
-	void UpdateBlochMatrix(SimulationParameters &sp, double rfAmplitude, double rfFrequency, double rfPhase);
+	void UpdateBlochMatrix(SimulationParameters &sp, double rfAmplitude, double rfFrequency, double rfPhase, double mtLineOverride = -1.0);
 
 	//! Solve Bloch McConnell equation 
 	void SolveBlochEquation(Eigen::VectorXd &M, double t);
@@ -199,7 +199,7 @@ template<int size> void BlochMcConnellSolver<size>::UpdateSimulationParameters(S
 	\param rfFrequency B1 frequency offset from f0 [Hz]
 	\param rfPhase B1 phase offset [rad]
 */
-template<int size> void BlochMcConnellSolver<size>::UpdateBlochMatrix(SimulationParameters &sp, double rfAmplitude, double rfFrequency, double rfPhase)
+template<int size> void BlochMcConnellSolver<size>::UpdateBlochMatrix(SimulationParameters &sp, double rfAmplitude, double rfFrequency, double rfPhase, double mtLineOverride)
 {
 	A(0, 1 + N) = dw0; // dephasing of water pool
 	A(1 + N, 0) = -dw0;
@@ -241,8 +241,11 @@ template<int size> void BlochMcConnellSolver<size>::UpdateBlochMatrix(Simulation
 
 	//set MT term
 	if (sp.IsMTActive()) {
-		A(3 * (N + 1), 3 * (N + 1)) = -sp.GetMTPool()->GetR1() - sp.GetMTPool()->GetExchangeRateInHz() - pow(rfAmplitude2pi, 2)* sp.GetMTPool()->GetMTLineAtCurrentOffset(rfFreqOffset2pi + dw0, w0);
-	}
+	double mtLine = (mtLineOverride >= 0.0)
+		? mtLineOverride                                                         
+		: sp.GetMTPool()->GetMTLineAtCurrentOffset(rfFreqOffset2pi + dw0, w0); 
+	A(3 * (N + 1), 3 * (N + 1)) = -sp.GetMTPool()->GetR1() - sp.GetMTPool()->GetExchangeRateInHz() - pow(rfAmplitude2pi, 2) * mtLine;
+    }
 }
 
 //! Solve Bloch McConnell equation 

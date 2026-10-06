@@ -284,8 +284,10 @@ bool BMCSim::RunSimulation() {
 				// loop trough pulse samples
 				std::vector<PulseSample>* pulseSamples = &(pulse->samples);
 				double rfFrequency = seqBlock->GetRFEvent().freqOffset;
+				RFEvent rfEv = seqBlock->GetRFEvent();
+                double mtOverride = sp->GetMTLineOverride(rfEv.magShape, rfEv.phaseShape, rfEv.freqOffset);
 				for (int p = 0; p < pulseSamples->size(); p++) { // loop through pulse samples
-					solver->UpdateBlochMatrix(*sp, pulseSamples->at(p).magnitude*seqBlock->GetRFEvent().amplitude, rfFrequency, -pulseSamples->at(p).phase + seqBlock->GetRFEvent().phaseOffset - accummPhase);
+					solver->UpdateBlochMatrix(*sp, pulseSamples->at(p).magnitude*seqBlock->GetRFEvent().amplitude, rfFrequency, -pulseSamples->at(p).phase + seqBlock->GetRFEvent().phaseOffset - accummPhase, mtOverride);
 					solver->SolveBlochEquation(M, pulseSamples->at(p).timestep);
 				}
 				// delay at end of the pulse?
