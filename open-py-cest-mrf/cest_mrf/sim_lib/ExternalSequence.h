@@ -83,6 +83,7 @@ struct RFEvent
 	float freqOffset;    /**< @brief Frequency offset of transmitter (Hz) */
 	float phaseOffset;   /**< @brief Phase offset of transmitter (rad) */
 	int delay;           /**< @brief Delay prior to the pulse (us) */
+	int timeShape;       /**< @brief ID of shape for sample times (0 = default uniform raster) */
 };
 
 
@@ -716,6 +717,13 @@ class ExternalSequence
 	int version_minor;
 	int version_revision;
 	int version_combined;
+	// Pulseq >=1.4.0 dropped the [DELAYS] library: the block table's second
+	// field became the block's raw duration, in units of this raster (seconds).
+	// Populated from the [DEFINITIONS] "BlockDurationRaster" key; defaults to 10us.
+	double m_blockDurationRaster_us;
+	// RF raster (us); time shapes (Pulseq >=1.4) store sample times in units of it.
+	// Populated from [DEFINITIONS] "RadiofrequencyRasterTime"; defaults to 1us.
+	double m_rfRaster_us;
 
 	std::map<std::string,int> m_fileIndex;     /**< @brief File location of sections, [RF], [ADC] etc */
 	std::set<int> m_fileSections;              /**< @brief File location of sections and EOF additionally */

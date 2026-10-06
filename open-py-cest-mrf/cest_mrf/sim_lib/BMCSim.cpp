@@ -127,8 +127,9 @@ void BMCSim::DecodeSeqRFInfo()
 		if (seqBlock->isRF())
 		{
 			RFEvent rf = seqBlock->GetRFEvent();
-			// make unique magnitude, phase and time tuple (time is placeholder for future Pulseq 1.4 support)
-			int timeID = 0;
+			// make unique magnitude, phase and time tuple; block pulses share [1 1] mag/phase
+			// shapes and differ only in their time shape (Pulseq >=1.4)
+			int timeID = rf.timeShape;
 			PulseID p = std::make_tuple(rf.magShape, rf.phaseShape, timeID);
 			if (!(std::find(uniquePuleIDs.begin(), uniquePuleIDs.end(), p) != uniquePuleIDs.end())) {
 				// register pulse
@@ -273,7 +274,7 @@ bool BMCSim::RunSimulation() {
 					M[i] = 0.0;
 			}
 			else if (seqBlock->isRF()) { // saturation pulse
-				int timeID = 0; // timeID is placeholder for future Pulseq 1.4 support
+				int timeID = seqBlock->GetRFEvent().timeShape; // block pulses differ only by their time shape
 				BMCSim::PulseID p = std::make_tuple(seqBlock->GetRFEvent().magShape, seqBlock->GetRFEvent().phaseShape, timeID); // get the magnitude, phase and time tuple
 				PulseEvent* pulse = this->GetUniquePulse(p); // find the unque rf id in the previously decoded seq file library
 				// delay before pulse?
@@ -285,7 +286,7 @@ bool BMCSim::RunSimulation() {
 				std::vector<PulseSample>* pulseSamples = &(pulse->samples);
 				double rfFrequency = seqBlock->GetRFEvent().freqOffset;
 				RFEvent rfEv = seqBlock->GetRFEvent();
-                double mtOverride = sp->GetMTLineOverride(rfEv.magShape, rfEv.phaseShape, rfEv.freqOffset);
+                double mtOverride = sp->GetMTLineOverride(rfEv.magShape, rfEv.phaseShape, rfEv.timeShape, rfEv.freqOffset);
 				for (int p = 0; p < pulseSamples->size(); p++) { // loop through pulse samples
 					solver->UpdateBlochMatrix(*sp, pulseSamples->at(p).magnitude*seqBlock->GetRFEvent().amplitude, rfFrequency, -pulseSamples->at(p).phase + seqBlock->GetRFEvent().phaseOffset - accummPhase, mtOverride);
 					solver->SolveBlochEquation(M, pulseSamples->at(p).timestep);

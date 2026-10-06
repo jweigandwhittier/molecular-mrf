@@ -5222,8 +5222,8 @@ SWIG_AsVal_int (PyObject * obj, int *val)
     if (py_obj == NULL          ) return "C NULL value";
     if (py_obj == Py_None       ) return "Python None" ;
     if (PyCallable_Check(py_obj)) return "callable"    ;
-    if (PyString_Check(  py_obj)) return "string"      ;
-    if (PyInt_Check(     py_obj)) return "int"         ;
+    if (PyUnicode_Check(  py_obj)) return "string"      ;
+    if (PyLong_Check(     py_obj)) return "int"         ;
     if (PyFloat_Check(   py_obj)) return "float"       ;
     if (PyDict_Check(    py_obj)) return "dict"        ;
     if (PyList_Check(    py_obj)) return "list"        ;
@@ -12655,22 +12655,25 @@ SWIGINTERN PyObject *_wrap_SimulationParameters_SetMTLineOverride(PyObject *self
   SimulationParameters *arg1 = (SimulationParameters *) 0 ;
   int arg2 ;
   int arg3 ;
-  double arg4 ;
+  int arg4 ;
   double arg5 ;
+  double arg6 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   int val2 ;
   int ecode2 = 0 ;
   int val3 ;
   int ecode3 = 0 ;
-  double val4 ;
+  int val4 ;
   int ecode4 = 0 ;
   double val5 ;
   int ecode5 = 0 ;
-  PyObject *swig_obj[5] ;
+  double val6 ;
+  int ecode6 = 0 ;
+  PyObject *swig_obj[6] ;
   
   (void)self;
-  if (!SWIG_Python_UnpackTuple(args, "SimulationParameters_SetMTLineOverride", 5, 5, swig_obj)) SWIG_fail;
+  if (!SWIG_Python_UnpackTuple(args, "SimulationParameters_SetMTLineOverride", 6, 6, swig_obj)) SWIG_fail;
   res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_SimulationParameters, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SimulationParameters_SetMTLineOverride" "', argument " "1"" of type '" "SimulationParameters *""'"); 
@@ -12686,17 +12689,22 @@ SWIGINTERN PyObject *_wrap_SimulationParameters_SetMTLineOverride(PyObject *self
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "SimulationParameters_SetMTLineOverride" "', argument " "3"" of type '" "int""'");
   } 
   arg3 = static_cast< int >(val3);
-  ecode4 = SWIG_AsVal_double(swig_obj[3], &val4);
+  ecode4 = SWIG_AsVal_int(swig_obj[3], &val4);
   if (!SWIG_IsOK(ecode4)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "SimulationParameters_SetMTLineOverride" "', argument " "4"" of type '" "double""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "SimulationParameters_SetMTLineOverride" "', argument " "4"" of type '" "int""'");
   } 
-  arg4 = static_cast< double >(val4);
+  arg4 = static_cast< int >(val4);
   ecode5 = SWIG_AsVal_double(swig_obj[4], &val5);
   if (!SWIG_IsOK(ecode5)) {
     SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "SimulationParameters_SetMTLineOverride" "', argument " "5"" of type '" "double""'");
   } 
   arg5 = static_cast< double >(val5);
-  (arg1)->SetMTLineOverride(arg2,arg3,arg4,arg5);
+  ecode6 = SWIG_AsVal_double(swig_obj[5], &val6);
+  if (!SWIG_IsOK(ecode6)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode6), "in method '" "SimulationParameters_SetMTLineOverride" "', argument " "6"" of type '" "double""'");
+  } 
+  arg6 = static_cast< double >(val6);
+  (arg1)->SetMTLineOverride(arg2,arg3,arg4,arg5,arg6);
   resultobj = SWIG_Py_Void();
   return resultobj;
 fail:
@@ -12732,20 +12740,23 @@ SWIGINTERN PyObject *_wrap_SimulationParameters_GetMTLineOverride(PyObject *self
   SimulationParameters *arg1 = (SimulationParameters *) 0 ;
   int arg2 ;
   int arg3 ;
-  double arg4 ;
+  int arg4 ;
+  double arg5 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
   int val2 ;
   int ecode2 = 0 ;
   int val3 ;
   int ecode3 = 0 ;
-  double val4 ;
+  int val4 ;
   int ecode4 = 0 ;
-  PyObject *swig_obj[4] ;
+  double val5 ;
+  int ecode5 = 0 ;
+  PyObject *swig_obj[5] ;
   double result;
   
   (void)self;
-  if (!SWIG_Python_UnpackTuple(args, "SimulationParameters_GetMTLineOverride", 4, 4, swig_obj)) SWIG_fail;
+  if (!SWIG_Python_UnpackTuple(args, "SimulationParameters_GetMTLineOverride", 5, 5, swig_obj)) SWIG_fail;
   res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_SimulationParameters, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SimulationParameters_GetMTLineOverride" "', argument " "1"" of type '" "SimulationParameters *""'"); 
@@ -12761,12 +12772,17 @@ SWIGINTERN PyObject *_wrap_SimulationParameters_GetMTLineOverride(PyObject *self
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "SimulationParameters_GetMTLineOverride" "', argument " "3"" of type '" "int""'");
   } 
   arg3 = static_cast< int >(val3);
-  ecode4 = SWIG_AsVal_double(swig_obj[3], &val4);
+  ecode4 = SWIG_AsVal_int(swig_obj[3], &val4);
   if (!SWIG_IsOK(ecode4)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "SimulationParameters_GetMTLineOverride" "', argument " "4"" of type '" "double""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "SimulationParameters_GetMTLineOverride" "', argument " "4"" of type '" "int""'");
   } 
-  arg4 = static_cast< double >(val4);
-  result = (double)(arg1)->GetMTLineOverride(arg2,arg3,arg4);
+  arg4 = static_cast< int >(val4);
+  ecode5 = SWIG_AsVal_double(swig_obj[4], &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "SimulationParameters_GetMTLineOverride" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = static_cast< double >(val5);
+  result = (double)(arg1)->GetMTLineOverride(arg2,arg3,arg4,arg5);
   resultobj = SWIG_From_double(static_cast< double >(result));
   return resultobj;
 fail:

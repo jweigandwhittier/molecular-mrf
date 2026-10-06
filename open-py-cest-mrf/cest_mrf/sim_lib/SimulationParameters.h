@@ -260,9 +260,9 @@ public: // TODO: write get and set methods for member variables and make them pr
 	unsigned int GetMaxNumberOfPulseSamples();
 	
 	// JWW add
-	void SetMTLineOverride(int magShape, int phaseShape, double freqOffsetHz, double g);
+	void SetMTLineOverride(int magShape, int phaseShape, int timeShape, double freqOffsetHz, double g);
 	void ClearMTLineOverrides();
-	double GetMTLineOverride(int magShape, int phaseShape, double freqOffsetHz);
+	double GetMTLineOverride(int magShape, int phaseShape, int timeShape, double freqOffsetHz);
 
 
 protected:
@@ -281,7 +281,7 @@ protected:
 	unsigned int maxNumberOfPulseSamples;  /*!< number of pulse samples for shaped pulses */
 	
 	// JWW add: per-pulse MT lineshape overrides, key = (magShape, phaseShape, round(freqOffsetHz))
-	std::map<std::tuple<int, int, long>, double> mtLineOverrides;
+	std::map<std::tuple<int, int, int, long>, double> mtLineOverrides;
 
 };
 

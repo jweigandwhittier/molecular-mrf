@@ -312,22 +312,23 @@ MTPool* SimulationParameters::GetMTPool()
 	return simulateMTPool ? &mtPool : NULL;
 }
 
-// Key for the MT lineshae override table: (magShape, phaseShape, freqOffset rounded to 1 Hz)
-static std::tuple<int, int, long> MakeMTOverrideKey(int magShape, int phaseShape, double freqOffsetHz)
+// Key for the MT lineshape override table: (magShape, phaseShape, timeShape, freqOffset rounded to 1 Hz)
+static std::tuple<int, int, int, long> MakeMTOverrideKey(int magShape, int phaseShape, int timeShape, double freqOffsetHz)
 {
-    return std::make_tuple(magShape, phaseShape, std::lround(freqOffsetHz));
+    return std::make_tuple(magShape, phaseShape, timeShape, std::lround(freqOffsetHz));
 }
 
 //! Set an MT lineshape override for one RF pulse shape at one frequency offset
 /*!
 	\param magShape  magnitude shape ID from the .seq file
 	\param phaseShape phase shape ID from the .seq file
+	\param timeShape time shape ID from the .seq file (0 = uniform raster, e.g. sinc; >0 e.g. block pulses)
 	\param freqOffsetHz RF frequency offset [Hz]
 	\param g  effective lineshape value (pi included, same units as GetMTLineAtCurrentOffset) [s]
 */
-void SimulationParameters::SetMTLineOverride(int magShape, int phaseShape, double freqOffsetHz, double g)
+void SimulationParameters::SetMTLineOverride(int magShape, int phaseShape, int timeShape, double freqOffsetHz, double g)
 {
-    mtLineOverrides[MakeMTOverrideKey(magShape, phaseShape, freqOffsetHz)] = g;
+    mtLineOverrides[MakeMTOverrideKey(magShape, phaseShape, timeShape, freqOffsetHz)] = g;
 }
 
 //! Remove all MT lineshape overrides
@@ -340,9 +341,9 @@ void SimulationParameters::ClearMTLineOverrides()
 /*!
     \return effective lineshape value [s] or -1.0 if no override exists for this pulse
 */
-double SimulationParameters::GetMTLineOverride(int magShape, int phaseShape, double freqOffsetHz)
+double SimulationParameters::GetMTLineOverride(int magShape, int phaseShape, int timeShape, double freqOffsetHz)
 {
-    auto it = mtLineOverrides.find(MakeMTOverrideKey(magShape, phaseShape, freqOffsetHz));
+    auto it = mtLineOverrides.find(MakeMTOverrideKey(magShape, phaseShape, timeShape, freqOffsetHz));
     if (it == mtLineOverrides.end())
         return -1.0;
     return it->second;

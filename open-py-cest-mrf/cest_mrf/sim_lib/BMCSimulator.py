@@ -495,14 +495,14 @@ class SimulationParameters(object):
     def GetMaxNumberOfPulseSamples(self):
         return _BMCSimulator.SimulationParameters_GetMaxNumberOfPulseSamples(self)
 
-    def SetMTLineOverride(self, magShape, phaseShape, freqOffsetHz, g):
-        return _BMCSimulator.SimulationParameters_SetMTLineOverride(self, magShape, phaseShape, freqOffsetHz, g)
+    def SetMTLineOverride(self, magShape, phaseShape, timeShape, freqOffsetHz, g):
+        return _BMCSimulator.SimulationParameters_SetMTLineOverride(self, magShape, phaseShape, timeShape, freqOffsetHz, g)
 
     def ClearMTLineOverrides(self):
         return _BMCSimulator.SimulationParameters_ClearMTLineOverrides(self)
 
-    def GetMTLineOverride(self, magShape, phaseShape, freqOffsetHz):
-        return _BMCSimulator.SimulationParameters_GetMTLineOverride(self, magShape, phaseShape, freqOffsetHz)
+    def GetMTLineOverride(self, magShape, phaseShape, timeShape, freqOffsetHz):
+        return _BMCSimulator.SimulationParameters_GetMTLineOverride(self, magShape, phaseShape, timeShape, freqOffsetHz)
 
 # Register SimulationParameters in _BMCSimulator:
 _BMCSimulator.SimulationParameters_swigregister(SimulationParameters)

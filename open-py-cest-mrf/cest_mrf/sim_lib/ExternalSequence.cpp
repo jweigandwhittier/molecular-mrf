@@ -22,6 +22,8 @@ ExternalSequence::ExternalSequence()
 	version_minor=0;
 	version_revision=0;
 	version_combined=0;
+	m_blockDurationRaster_us=10.0; // sane default (10us) if no DEFINITIONS override is found
+	m_rfRaster_us=1.0;             // sane default (1us) if no DEFINITIONS override is found
 }
 
 
@@ -205,6 +207,7 @@ bool ExternalSequence::load(std::string path)
 				break;
 			}
 			RFEvent event;
+			event.timeShape = 0;   // only Pulseq >=1.4 files can set a time shape
 			if (version_combined<1002000L)
 			{
 				if (6!=sscanf(buffer, "%d%f%d%d%f%f", &rfId, &(event.amplitude),
@@ -215,6 +218,25 @@ bool ExternalSequence::load(std::string path)
 				return false;
 			}
 				event.delay=0;
+			}
+			else if ( version_combined>=1004000L )
+			{
+				// Current format: id ampl mag_id phase_id time_shape_id center
+				// delay freqPPm phasePPM freq phase use -- RFEvent has no slot
+				// for time-shaped pulses or the ppm-based fields, so those are
+				// parsed into throwaway locals; delay/freq/phase are the ones
+				// this reader still understands (same meaning as the old
+				// delay/freqOffset/phaseOffset fields).
+				int timeShapeId; float center, freqPPm, phasePPM;
+				if (11!=sscanf(buffer, "%d%f%d%d%d%f%d%f%f%f%f", &rfId, &(event.amplitude),
+							&(event.magShape),&(event.phaseShape), &timeShapeId, &center,
+							&(event.delay), &freqPPm, &phasePPM,
+							&(event.freqOffset), &(event.phaseOffset)
+							)) {
+					print_msg(ERROR_MSG, std::ostringstream().flush() << "*** ERROR: failed to decode RF event\n" << buffer << std::endl );
+					return false;
+				}
+				event.timeShape = timeShapeId;   // keep it: block pulses are 2 samples + a time shape
 			}
 			else
 			{
@@ -312,7 +334,21 @@ bool ExternalSequence::load(std::string path)
 				break;
 			}
 			ADCEvent event;
-			if (6!=sscanf(buffer, "%d%d%d%d%f%f", &adcId, &(event.numSamples),
+			if (version_combined>=1004000L)
+			{
+				// Current format: id num dwell delay freqPPM phasePPM freq
+				// phase phase_id -- freq/phase moved two columns later than
+				// this reader assumes; freqPPM/phasePPM/phase_id are parsed
+				// into throwaway locals (no slot for them in ADCEvent).
+				float freqPPM, phasePPM; int phaseId;
+				if (9!=sscanf(buffer, "%d%d%d%d%f%f%f%f%d", &adcId, &(event.numSamples),
+							&(event.dwellTime),&(event.delay),&freqPPM,&phasePPM,
+							&(event.freqOffset),&(event.phaseOffset),&phaseId)) {
+					print_msg(ERROR_MSG, std::ostringstream().flush() << "*** ERROR: failed to decode ADC event\n" << buffer << std::endl );
+					return false;
+				}
+			}
+			else if (6!=sscanf(buffer, "%d%d%d%d%f%f", &adcId, &(event.numSamples),
 						&(event.dwellTime),&(event.delay),&(event.freqOffset),&(event.phaseOffset))) {
 				print_msg(ERROR_MSG, std::ostringstream().flush() << "*** ERROR: failed to decode ADC event\n" << buffer << std::endl );
 				return false;
@@ -560,6 +596,15 @@ bool ExternalSequence::load(std::string path)
 
 		print_msg(DEBUG_HIGH_LEVEL, out);
 
+		// Pulseq >=1.4.0: block table's 2nd field is a raw duration (in raster
+		// ticks), not a delay-event ID -- remember the raster so GetBlock() and
+		// checkBlockReferences() can interpret it correctly (see version_combined
+		// checks below).
+		if (m_definitions.count("BlockDurationRaster") && !m_definitions["BlockDurationRaster"].empty())
+			m_blockDurationRaster_us = m_definitions["BlockDurationRaster"][0] * 1e6;
+		if (m_definitions.count("RadiofrequencyRasterTime") && !m_definitions["RadiofrequencyRasterTime"].empty())
+			m_rfRaster_us = m_definitions["RadiofrequencyRasterTime"][0] * 1e6;
+
 	} // if definitions exist
 
 	// Read blocks section
@@ -599,7 +644,7 @@ bool ExternalSequence::load(std::string path)
 		if (!checkBlockReferences(events)) {
 			print_msg(ERROR_MSG, std::ostringstream().flush() << "*** ERROR: Block " << blockIdx
 				<< " contains references to undefined events" );
-			print_msg(ERROR_MSG, std::ostringstream().flush() << "***        RF:" << events.id[RF] << " GX:" << events.id[GX] << " GY:" << events.id[GY] << " GZ:" << events.id[GZ] << " ADC:" << events.id[DELAY] << " GX:" << events.id[DELAY] << " EXT:" << events.id[EXT]);
+			print_msg(ERROR_MSG, std::ostringstream().flush() << "***        RF:" << events.id[RF] << " GX:" << events.id[GX] << " GY:" << events.id[GY] << " GZ:" << events.id[GZ] << " ADC:" << events.id[ADC] << " DELAY:" << events.id[DELAY] << " EXT:" << events.id[EXT]);
 			return false;
 		}
 		// Add event IDs to list of blocks
@@ -675,7 +720,11 @@ SeqBlock*	ExternalSequence::GetBlock(int index) {
 	// Set event structures (if applicable) so e.g. gradient type can be determined
 	if (events.id[RF]>0)     block->rf      = m_rfLibrary[events.id[RF]];
 	if (events.id[ADC]>0)    block->adc     = m_adcLibrary[events.id[ADC]];
-	if (events.id[DELAY]>0)  block->delay   = m_delayLibrary[events.id[DELAY]];
+	// Pulseq >=1.4.0: no delay-event library -- events.id[DELAY] is handled as a
+	// raw block duration below instead (see version_combined>=1004000L branch).
+	if (version_combined < 1004000L) {
+		if (events.id[DELAY]>0)  block->delay   = m_delayLibrary[events.id[DELAY]];
+	}
 	//if (events.id[CTRL]>0)   block->control = m_controlLibrary[events.id[CTRL]];
 	for (unsigned int i=0; i<NUM_GRADS; i++)
 		if (events.id[GX+i]>0) block->grad[i] = m_gradLibrary[events.id[GX+i]];
@@ -759,11 +808,17 @@ SeqBlock*	ExternalSequence::GetBlock(int index) {
 		duration = MAX(duration, trigger.delay+trigger.duration );
 	}
 
-	// handling of delays has changed in revision 1.2.0
+	// handling of delays has changed in revision 1.2.0; the separate [DELAYS]
+	// library was dropped entirely in revision 1.4.0, replaced by a raw
+	// duration (in BlockDurationRaster ticks) directly in the block table.
 	if (version_combined<1002000L)
 		block->duration = duration + block->delay;
-	else
+	else if (version_combined<1004000L)
 		block->duration = MAX(duration, block->delay);
+	else {
+		long tableDurationUs = (long)(events.id[DELAY] * m_blockDurationRaster_us + 0.5);
+		block->duration = MAX(duration, tableDurationUs);
+	}
 
 	//ExternalSequence::print_msg(DEBUG_LOW_LEVEL, std::ostringstream().flush() << "block duration: " << block->duration);
     
@@ -832,6 +887,42 @@ bool ExternalSequence::decodeBlock(SeqBlock *block)
 		// Scale phase by 2pi
 		std::transform(waveform.begin(), waveform.end(), waveform.begin(), std::bind1st(std::multiplies<float>(),TWO_PI));
 		block->rfPhase = std::vector<float>(waveform);
+
+		// Pulseq >=1.4 time shape: the samples above sit at the listed times
+		// (in RF-raster units), not one per raster. Resample amplitude and phase
+		// onto the uniform 1 us raster the simulator assumes, by linear
+		// interpolation, with samples at the raster centres (k + 0.5) us.
+		if (block->rf.timeShape > 0)
+		{
+			CompressedShape& shapeTime = m_shapeLibrary[block->rf.timeShape];
+			std::vector<float> tSamples(shapeTime.numUncompressedSamples);
+			if (!decompressShape(shapeTime, &tSamples[0]))
+				return false;
+			if (tSamples.size() != block->rfAmplitude.size() || tSamples.size() < 2) {
+				print_msg(ERROR_MSG, std::ostringstream().flush() << "*** ERROR: RF time shape length " << tSamples.size()
+					<< " does not match magnitude shape length " << block->rfAmplitude.size());
+				return false;
+			}
+			for (size_t i = 0; i < tSamples.size(); i++)
+				tSamples[i] *= (float)m_rfRaster_us;            // raster units -> microseconds
+
+			int nOut = (int)(tSamples.back() + 0.5);         // pulse length in 1 us samples
+			std::vector<float> amp(nOut), ph(nOut);
+			size_t seg = 0;                                  // which pair of time points we're between
+			for (int k = 0; k < nOut; k++)
+			{
+				float tq = k + 0.5f;                         // centre of output sample k
+				while (seg + 2 < tSamples.size() && tq > tSamples[seg + 1])
+					seg++;
+				float t0 = tSamples[seg], t1 = tSamples[seg + 1];
+				float w = (t1 > t0) ? (tq - t0) / (t1 - t0) : 0.0f;
+				w = std::min(1.0f, std::max(0.0f, w));
+				amp[k] = (1 - w) * block->rfAmplitude[seg] + w * block->rfAmplitude[seg + 1];
+				ph[k]  = (1 - w) * block->rfPhase[seg]     + w * block->rfPhase[seg + 1];
+			}
+			block->rfAmplitude = amp;
+			block->rfPhase = ph;
+		}
 	}
 
 	// Decode gradients
@@ -878,9 +969,23 @@ bool ExternalSequence::decodeBlock(SeqBlock *block)
 /***********************************************************/
 bool ExternalSequence::decompressShape(CompressedShape& encoded, float *shape)
 {
-	float *packed = &encoded.samples[0];
 	int numPacked = encoded.samples.size();
 	int numSamples = encoded.numUncompressedSamples;
+
+	// PyPulseq (and MATLAB Pulseq) store a shape UNCOMPRESSED -- literal
+	// samples, not RLE-encoded derivatives -- whenever RLE-compressing the
+	// derivative wouldn't actually shrink it (common for smooth envelopes
+	// like windowed sinc/gaussian RF pulses). In that case numPacked equals
+	// numUncompressedSamples exactly, and the samples must be copied through
+	// as-is: NOT run-length-decoded, and NOT cumulatively summed (the cumsum
+	// below only undoes the derivative encoding, which was never applied).
+	if (numPacked == numSamples) {
+		for (int i = 0; i < numSamples; i++)
+			shape[i] = (float)encoded.samples[i];
+		return true;
+	}
+
+	float *packed = &encoded.samples[0];
 
 	int countPack=1;
 	int countUnpack=1;
@@ -897,9 +1002,10 @@ bool ExternalSequence::decompressShape(CompressedShape& encoded, float *shape)
 			int rep = ((int)packed[countPack+1])+2;
 			if (fabs(packed[countPack+1]+2-rep)>1e-6) // MZ: detect format error present in some Pulseq Matlab toolbox versions
 			{
-				print_msg(ERROR_MSG, std::ostringstream().flush() << "ERROR: compressed shape format error detected \n"
-																	 "  packed[countPack-1]=" << packed[countPack-1] << "  packed[countPack]=" << packed[countPack] << std::endl <<
-																	 "  packed[countPack+1]=" << packed[countPack+1] << "  rep=" << rep << "  countPack=" << countPack );
+				print_msg(ERROR_MSG, std::ostringstream().flush()
+					<< "ERROR: compressed shape format error detected" << std::endl
+					<< "  packed[countPack-1]=" << packed[countPack-1] << "  packed[countPack]=" << packed[countPack] << std::endl
+					<< "  packed[countPack+1]=" << packed[countPack+1] << "  rep=" << rep << "  countPack=" << countPack );
 				return false;
 			}
 			for (int i=countUnpack-1; i<=countUnpack+rep-2; i++)
@@ -930,7 +1036,10 @@ bool ExternalSequence::checkBlockReferences(EventIDs& events)
 	error|= (events.id[GY]>0    && m_gradLibrary.count(events.id[GY])==0);
 	error|= (events.id[GZ]>0    && m_gradLibrary.count(events.id[GZ])==0);
 	error|= (events.id[ADC]>0   && m_adcLibrary.count(events.id[ADC])==0);
-	error|= (events.id[DELAY]>0 && m_delayLibrary.count(events.id[DELAY])==0);
+	// Pulseq >=1.4.0 has no [DELAYS] library at all -- events.id[DELAY] is a raw
+	// duration in raster ticks there, not a library reference, so skip this check.
+	if (version_combined < 1004000L)
+		error|= (events.id[DELAY]>0 && version_combined<1004000L && m_delayLibrary.count(events.id[DELAY])==0);
 	//error|= (events.id[CTRL]>0  && m_controlLibrary.count(events.id[CTRL])==0); // TODO: currently all error checking is done in getBlock(); it needs to be done here 
 	
 	return (!error);
